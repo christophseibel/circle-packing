@@ -12,12 +12,11 @@
 	let graph: Graph;
 
 	const sketch: Sketch = (p5: p5) => {
-		graph = new Graph(p5);
-
 		let debug = false;
 
 		p5.setup = () => {
 			p5.createCanvas(700, 700);
+			graph = new Graph(p5);
 			p5.noStroke();
 
 			let seed = p5.random(100000000000);
@@ -25,7 +24,7 @@
 			p5.randomSeed(seed);
 
 			let i = 0;
-			while (i < 10) {
+			while (i < 7) {
 				graph.addNode(p5.createVector(p5.random(p5.width), p5.random(p5.height)), 10);
 				i++;
 			}
@@ -39,7 +38,7 @@
 		p5.draw = () => {
 			p5.background(0);
 			graph.optimize();
-			graph.display(true);
+			graph.display(false);
 		};
 
 		p5.mouseClicked = () => {};

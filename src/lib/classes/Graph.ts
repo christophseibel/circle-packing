@@ -1,15 +1,19 @@
 import { Circle } from './Circle';
 import Delaunator from 'delaunator';
+import { Delaunay } from 'd3';
 import type p5 from 'p5';
 
 export class Graph {
 	nodes: Circle[] = [];
 	edges: Set<number>[] = [];
 
+	center: p5.Vector;
+
 	p5: p5;
 
 	constructor(p5: p5) {
 		this.p5 = p5;
+		this.center = p5.createVector(p5.width / 2, p5.height / 2);
 	}
 
 	addNode(position: p5.Vector, r: number): Circle {
@@ -25,27 +29,38 @@ export class Graph {
 	}
 
 	triangulate() {
-		const triangulation = Delaunator.from(
-			this.nodes,
-			(n) => n.position.x,
-			(n) => n.position.y
-		);
+		// 1. Build flat array [x0,y0,x1,y1,…]
+		const coords = new Float64Array(this.nodes.length * 2);
+		this.nodes.forEach((n, i) => {
+			coords[i * 2] = n.position.x;
+			coords[i * 2 + 1] = n.position.y;
+		});
 
-		for (let i = 0; i < triangulation.triangles.length; i++) {
-			const a = triangulation.triangles[i];
-			const b = triangulation.triangles[next(i)];
+		// 2. Triangulate
+		const delaunay = new Delaunay(coords);
+
+		// 3. Store edges (undirected)
+		const { triangles } = delaunay;
+		for (let i = 0; i < triangles.length; i += 3) {
+			const a = triangles[i];
+			const b = triangles[i + 1];
+			const c = triangles[i + 2];
 			this.connect(a, b);
+			this.connect(b, c);
+			this.connect(c, a);
 		}
-		return triangulation;
+
+		return delaunay; // if you still need the full object
 	}
 
 	optimize() {
 		let i = 0;
 		while (i < 5) {
 			this.edges.forEach((edge, index) => {
+				const circle = this.nodes[index];
+
 				let totalForce = this.p5.createVector(0, 0);
 				let circleGrowth = 0;
-				const circle = this.nodes[index];
 
 				edge.forEach((index) => {
 					const neighbor = this.nodes[index];
