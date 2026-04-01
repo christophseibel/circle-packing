@@ -48,5 +48,8 @@
 	},
 	"keywords": [
 		"svelte"
-	]
+	],
+	"dependencies": {
+		"delaunator": "^5.1.0"
+	}
 }
