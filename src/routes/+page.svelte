@@ -25,7 +25,7 @@
 			p5.randomSeed(seed);
 
 			let i = 0;
-			while (i < 50) {
+			while (i < 10) {
 				graph.addNode(p5.createVector(p5.random(p5.width), p5.random(p5.height)), 10);
 				i++;
 			}
@@ -39,7 +39,7 @@
 		p5.draw = () => {
 			p5.background(0);
 			graph.optimize();
-			graph.display(false);
+			graph.display(true);
 		};
 
 		p5.mouseClicked = () => {};

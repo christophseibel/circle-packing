@@ -74,9 +74,14 @@ export class Graph {
 			this.p5.translate(circleA.position.x, circleA.position.y);
 			this.p5.fill(this.p5.random(100, 255));
 			if (debug) {
+				this.p5.stroke(255);
+				this.p5.fill(255);
+				this.p5.text(index, 0, 0);
 				this.p5.noFill();
 			}
+
 			this.p5.ellipse(0, 0, circleA.radius * 2);
+
 			this.p5.pop();
 
 			edge.forEach((index) => {
