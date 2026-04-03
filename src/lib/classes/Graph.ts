@@ -1,5 +1,4 @@
 import { Circle } from './Circle';
-import Delaunator from 'delaunator';
 import { Delaunay } from 'd3';
 import type p5 from 'p5';
 
@@ -10,10 +9,24 @@ export class Graph {
 	center: p5.Vector;
 
 	p5: p5;
+	seed: number;
+
+	palette = [
+		'#1870a5',
+		'#462013',
+		'#e03c10',
+		'#1e4851',
+		'#8f4921',
+		'#8c180e',
+		'#ed961d',
+		'#a1822c',
+		'#afb4a0'
+	];
 
 	constructor(p5: p5) {
 		this.p5 = p5;
 		this.center = p5.createVector(p5.width / 2, p5.height / 2);
+		this.seed = this.p5.random(1000000);
 	}
 
 	addNode(position: p5.Vector, r: number): Circle {
@@ -29,17 +42,13 @@ export class Graph {
 	}
 
 	triangulate() {
-		// 1. Build flat array [x0,y0,x1,y1,…]
 		const coords = new Float64Array(this.nodes.length * 2);
 		this.nodes.forEach((n, i) => {
 			coords[i * 2] = n.position.x;
 			coords[i * 2 + 1] = n.position.y;
 		});
-
-		// 2. Triangulate
 		const delaunay = new Delaunay(coords);
 
-		// 3. Store edges (undirected)
 		const { triangles } = delaunay;
 		for (let i = 0; i < triangles.length; i += 3) {
 			const a = triangles[i];
@@ -50,12 +59,13 @@ export class Graph {
 			this.connect(c, a);
 		}
 
-		return delaunay; // if you still need the full object
+		return delaunay;
 	}
 
-	optimize() {
+	optimize(): number {
 		let i = 0;
-		while (i < 5) {
+		let totalState = 0;
+		while (i < 20) {
 			this.edges.forEach((edge, index) => {
 				const circle = this.nodes[index];
 
@@ -72,37 +82,46 @@ export class Graph {
 					circleGrowth += overlap;
 					totalForce.add(force);
 				});
-				circle.position.sub(totalForce.mult(0.1));
-				circle.radius = circle.radius + circleGrowth * 0.01;
+
+				circle.position.sub(totalForce.mult(0.01));
+				circle.radius = circle.radius + circleGrowth * 0.001;
+
+				totalState += totalForce.mag();
 			});
 			i++;
 		}
+
+		return totalState;
 	}
 
 	display(debug: boolean) {
-		this.p5.randomSeed(1);
+		this.p5.randomSeed(this.seed);
 		this.edges.forEach((edge, index) => {
 			const circleA = this.nodes[index];
 
 			this.p5.push();
 
-			this.p5.translate(circleA.position.x, circleA.position.y);
-			this.p5.fill(this.p5.random(100, 255));
+			this.p5.translate(circleA.position.x, 500, circleA.position.y);
+			// this.p5.rotateX(90);
+			this.p5.fill(this.p5.random(this.palette));
 			if (debug) {
-				this.p5.stroke(255);
+				this.p5.stroke(this.p5.random(this.palette));
 				this.p5.fill(255);
-				this.p5.text(index, 0, 0);
+				// this.p5.text(index, 0, 0);
 				this.p5.noFill();
 			}
 
-			this.p5.ellipse(0, 0, circleA.radius * 2);
+			// this.p5.stroke(this.p5.random(this.palette));
+			// this.p5.strokeWeight(0.25);
+
+			this.p5.cylinder(circleA.radius * 0.98, this.p5.random(1000, 1080));
 
 			this.p5.pop();
 
 			edge.forEach((index) => {
 				const circleB = this.nodes[index];
 				this.p5.push();
-				this.p5.stroke('blue');
+				this.p5.stroke(this.p5.random(this.palette));
 				if (debug)
 					this.p5.line(
 						circleA.position.x,
