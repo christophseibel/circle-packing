@@ -11,17 +11,7 @@ export class Graph {
 	p5: p5;
 	seed: number;
 
-	palette = [
-		'#1870a5',
-		'#462013',
-		'#e03c10',
-		'#1e4851',
-		'#8f4921',
-		'#8c180e',
-		'#ed961d',
-		'#a1822c',
-		'#afb4a0'
-	];
+	palette = ['#0cdfae', '#17bb3a', '#fcd217', '#f32f59', '#e612fa'];
 
 	constructor(p5: p5) {
 		this.p5 = p5;
@@ -114,7 +104,17 @@ export class Graph {
 			// this.p5.stroke(this.p5.random(this.palette));
 			// this.p5.strokeWeight(0.25);
 
-			this.p5.cylinder(circleA.radius * 0.98, this.p5.random(1000, 1080));
+			this.p5.specularMaterial(255, 255, 255);
+			this.p5.shininess(1);
+			this.p5.metalness(20);
+
+			this.p5.cylinder(circleA.radius * 0.98, 1000);
+
+			this.p5.translate(0, -500.5, 0);
+			this.p5.fill(0);
+			this.p5.shininess(100);
+
+			this.p5.cylinder(circleA.radius * this.p5.random(0.85, 0.9), 1);
 
 			this.p5.pop();
 

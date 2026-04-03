@@ -14,7 +14,7 @@
 
 	const sketch: Sketch = (p5: p5) => {
 		p5.setup = () => {
-			p5.createCanvas(700, 700, p5.WEBGL);
+			p5.createCanvas(600, 650, p5.WEBGL);
 			p5.angleMode(p5.DEGREES);
 
 			let seed = p5.random(100000000000);
@@ -22,7 +22,7 @@
 			graph = new Graph(p5);
 
 			let i = 0;
-			let amount = 100;
+			let amount = p5.random(30, 50);
 			let r = 360 / amount;
 			while (i < amount) {
 				graph.addNode(
@@ -33,7 +33,7 @@
 			}
 
 			i = 0;
-			amount = 50;
+			amount = p5.random(15, 30);
 			r = 360 / amount;
 			while (i < amount) {
 				graph.addNode(
@@ -44,7 +44,7 @@
 			}
 
 			i = 0;
-			amount = 7;
+			amount = p5.random(3, 14);
 			r = 360 / amount;
 			while (i < amount) {
 				graph.addNode(
@@ -59,14 +59,15 @@
 			graph.triangulate();
 			p5.frameRate(60);
 			p5.noStroke();
-			p5.noLoop();
 		};
 
 		p5.draw = () => {
-			p5.background('#080809');
+			p5.background('#5252f1');
 			p5.camera(0, -400, 400, 0, 100, 0);
-			p5.directionalLight(255, 255, 255, -1, 1, 1);
-			p5.ambientLight('#dbd9cd');
+			p5.directionalLight(p5.color(180, 180, 255), p5.createVector(-0.8, 0.1, -0.05));
+			p5.directionalLight(p5.color(255, 255, 255), p5.createVector(0, 1, 0));
+
+			p5.ambientLight('#374287');
 
 			graph.display(debug);
 			graph.optimize();
@@ -78,13 +79,7 @@
 			}
 
 			if (p5.keyCode === 32) {
-				if (reload) {
-					reload = false;
-					p5.setup();
-				} else {
-					reload = true;
-					p5.loop();
-				}
+				p5.setup();
 			}
 		};
 	};
