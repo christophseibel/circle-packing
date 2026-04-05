@@ -1,28 +1,25 @@
 import { Circle } from './Circle';
 import { Delaunay } from 'd3';
 import type p5 from 'p5';
+import * as THREE from 'three';
 
 export class Graph {
 	nodes: Circle[] = [];
 	edges: Set<number>[] = [];
 
-	center: p5.Vector;
-
-	p5: p5;
-	seed: number;
+	scene: THREE.Scene;
 
 	palette = ['#0cdfae', '#17bb3a', '#fcd217', '#f32f59', '#e612fa'];
 
-	constructor(p5: p5) {
-		this.p5 = p5;
-		this.center = p5.createVector(p5.width / 2, p5.height / 2);
-		this.seed = this.p5.random(1000000);
+	constructor(scene: THREE.Scene) {
+		this.scene = scene;
 	}
 
-	addNode(position: p5.Vector, r: number): Circle {
+	addNode(position: THREE.Vector2, r: number): Circle {
 		const circle = new Circle(position, r);
 		this.nodes.push(circle);
 		this.edges.push(new Set());
+
 		return circle;
 	}
 
@@ -52,87 +49,29 @@ export class Graph {
 		return delaunay;
 	}
 
-	optimize(): number {
+	optimize() {
 		let i = 0;
-		let totalState = 0;
-		while (i < 20) {
+		while (i < 10) {
 			this.edges.forEach((edge, index) => {
 				const circle = this.nodes[index];
-
-				let totalForce = this.p5.createVector(0, 0);
+				let totalForce = new THREE.Vector2(0, 0);
 				let circleGrowth = 0;
-
 				edge.forEach((index) => {
 					const neighbor = this.nodes[index];
-
-					let direction = circle.position.copy().sub(neighbor.position);
-					let overlap = direction.mag() - (circle.radius + neighbor.radius);
-					let force = direction.normalize().mult(overlap);
-
+					let direction = neighbor.position.clone().sub(circle.position);
+					let overlap = direction.length() - (circle.radius + neighbor.radius);
+					let force = direction.normalize().multiplyScalar(overlap);
 					circleGrowth += overlap;
 					totalForce.add(force);
 				});
-
-				circle.position.sub(totalForce.mult(0.01));
+				circle.position.add(totalForce.multiplyScalar(0.01));
 				circle.radius = circle.radius + circleGrowth * 0.001;
-
-				totalState += totalForce.mag();
 			});
 			i++;
 		}
-
-		return totalState;
 	}
 
-	display(debug: boolean) {
-		this.p5.randomSeed(this.seed);
-		this.edges.forEach((edge, index) => {
-			const circleA = this.nodes[index];
-
-			this.p5.push();
-
-			this.p5.translate(circleA.position.x, 500, circleA.position.y);
-			// this.p5.rotateX(90);
-			this.p5.fill(this.p5.random(this.palette));
-			if (debug) {
-				this.p5.stroke(this.p5.random(this.palette));
-				this.p5.fill(255);
-				// this.p5.text(index, 0, 0);
-				this.p5.noFill();
-			}
-
-			// this.p5.stroke(this.p5.random(this.palette));
-			// this.p5.strokeWeight(0.25);
-
-			this.p5.specularMaterial(255, 255, 255);
-			this.p5.shininess(1);
-			this.p5.metalness(20);
-
-			this.p5.cylinder(circleA.radius * 0.98, 1000);
-
-			this.p5.translate(0, -500.5, 0);
-			this.p5.fill(0);
-			this.p5.shininess(100);
-
-			this.p5.cylinder(circleA.radius * this.p5.random(0.85, 0.9), 1);
-
-			this.p5.pop();
-
-			edge.forEach((index) => {
-				const circleB = this.nodes[index];
-				this.p5.push();
-				this.p5.stroke(this.p5.random(this.palette));
-				if (debug)
-					this.p5.line(
-						circleA.position.x,
-						circleA.position.y,
-						circleB.position.x,
-						circleB.position.y
-					);
-				this.p5.pop();
-			});
-		});
-	}
+	display() {}
 }
 
 const next = (i: number) => i - (i % 3) + ((i + 1) % 3);

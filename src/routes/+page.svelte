@@ -1,90 +1,107 @@
 <script lang="ts">
-	import P5 from '$lib/components/P5.svelte';
-	import type p5 from 'p5';
-	import type { Sketch } from '$lib/types/index.js';
-	import { Circle } from '$lib/classes/Circle';
-	import { Graph } from '$lib/classes/Graph';
+	import { Circle, createPipeShape, Graph } from '$lib';
 
-	let width = 55;
-	let height = 55;
+	import { onMount } from 'svelte';
+	import * as THREE from 'three';
+	import { OrbitControls } from 'three/examples/jsm/Addons.js';
 
-	let graph: Graph;
-	let debug = $state(false);
-	let reload = false;
+	let canvas: HTMLCanvasElement;
 
-	const sketch: Sketch = (p5: p5) => {
-		p5.setup = () => {
-			p5.createCanvas(600, 650, p5.WEBGL);
-			p5.angleMode(p5.DEGREES);
+	onMount(() => {
+		const scene = new THREE.Scene();
+		const graph = new Graph(scene);
 
-			let seed = p5.random(100000000000);
-			p5.randomSeed(seed);
-			graph = new Graph(p5);
+		const camera = new THREE.PerspectiveCamera(20, 500 / 500, 0.1, 1000);
+		camera.position.set(0, 400, 300);
+		camera.lookAt(0, 200, 0);
 
-			let i = 0;
-			let amount = p5.random(30, 50);
-			let r = 360 / amount;
-			while (i < amount) {
-				graph.addNode(
-					p5.createVector(p5.cos(r * i) * p5.random(180, 200), p5.sin(r * i) * p5.random(180, 200)),
-					2
-				);
-				i++;
-			}
+		const renderer = new THREE.WebGLRenderer({ canvas: canvas });
 
-			i = 0;
-			amount = p5.random(15, 30);
-			r = 360 / amount;
-			while (i < amount) {
-				graph.addNode(
-					p5.createVector(p5.cos(r * i) * p5.random(80, 120), p5.sin(r * i) * p5.random(80, 120)),
-					2
-				);
-				i++;
-			}
+		const gridHelper = new THREE.GridHelper(10, 10);
+		scene.add(gridHelper);
 
-			i = 0;
-			amount = p5.random(3, 14);
-			r = 360 / amount;
-			while (i < amount) {
-				graph.addNode(
-					p5.createVector(p5.cos(r * i) * p5.random(20, 70), p5.sin(r * i) * p5.random(20, 70)),
-					5
-				);
-				i++;
-			}
+		const color = 0xffffff;
+		const intensity = 10;
+		const light = new THREE.DirectionalLight(color, intensity);
+		light.position.set(20, 10, 20);
+		light.target.position.set(0, 0, 0);
+		scene.add(light);
+		scene.add(light.target);
 
-			graph.addNode(p5.createVector(0, 0), 10);
+		// new OrbitControls(camera, renderer.domElement);
 
-			graph.triangulate();
-			p5.frameRate(60);
-			p5.noStroke();
-		};
+		let i = 0;
+		let amount = Math.floor(randomNumber(30, 50));
+		let r = (Math.PI * 2) / amount;
+		while (i < amount) {
+			graph.addNode(
+				new THREE.Vector2(
+					Math.cos(r * i) * randomNumber(40, 45),
+					Math.sin(r * i) * randomNumber(40, 45)
+				),
+				2
+			);
+			i++;
+		}
 
-		p5.draw = () => {
-			p5.background('#5252f1');
-			p5.camera(0, -400, 400, 0, 100, 0);
-			p5.directionalLight(p5.color(180, 180, 255), p5.createVector(-0.8, 0.1, -0.05));
-			p5.directionalLight(p5.color(255, 255, 255), p5.createVector(0, 1, 0));
+		i = 0;
+		amount = Math.floor(randomNumber(15, 30));
+		r = (Math.PI * 2) / amount;
+		while (i < amount) {
+			graph.addNode(
+				new THREE.Vector2(
+					Math.cos(r * i) * randomNumber(20, 30),
+					Math.sin(r * i) * randomNumber(20, 30)
+				),
+				2
+			);
+			i++;
+		}
 
-			p5.ambientLight('#374287');
+		graph.addNode(new THREE.Vector2(0, 0), 2);
 
-			graph.display(debug);
+		graph.triangulate();
+
+		for (let i = 0; i < 1000; i++) {
 			graph.optimize();
-		};
+		}
 
-		p5.keyPressed = () => {
-			if (p5.keyCode === 13) {
-				debug = !debug;
-			}
+		graph.nodes.forEach((circle) => {
+			const shape = createPipeShape(circle.radius - randomNumber(0.4, 1), circle.radius, 10);
+			const geometry = new THREE.ExtrudeGeometry(shape, {
+				curveSegments: 128,
+				depth: randomNumber(198, 200),
+				bevelSize: 0
+			});
+			const matSide = new THREE.MeshStandardMaterial({ color: 0xffffff });
+			const matStart = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+			const matEnd = new THREE.MeshStandardMaterial({ color: 0x0000ff });
 
-			if (p5.keyCode === 32) {
-				p5.setup();
-			}
-		};
-	};
+			const mesh = new THREE.Mesh(geometry, [matSide, matStart, matEnd]);
+			mesh.position.x = circle.position.x;
+			mesh.position.z = circle.position.y;
+			mesh.rotation.x = -Math.PI / 2;
+			scene.add(mesh);
+		});
+
+		// const controls = new OrbitControls(camera, renderer.domElement);
+		// controls.target.set(0, 200, 0);
+
+		// const geometry = createPipeGeometry(0, 2, 2);
+		// const circle = new Circle(new THREE.Vector2(0, 0), 2);
+
+		renderer.setAnimationLoop((time: number) => {
+			renderer.render(scene, camera);
+		});
+	});
+
+	function randomNumber(min: number, max: number) {
+		return Math.random() * (max - min) + min;
+	}
 </script>
 
-<P5 {sketch} />
+<canvas bind:this={canvas} width={700} height={700}></canvas>
+
+<!-- <P5 {sketch} /> -->
 <!-- 
 <input type="checkbox" bind:checked={debug} /> -->
