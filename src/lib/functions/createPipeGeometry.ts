@@ -4,7 +4,7 @@ export function createPipeShape(
 	innerRadius: number,
 	outerRadius: number,
 	height: number
-): THREE.Shape {
+): { ringShape: THREE.Shape; outerPoints: number; holePoints: number } {
 	const ringShape = new THREE.Shape();
 	ringShape.moveTo(0, 0);
 	ringShape.ellipse(0, 0, outerRadius, outerRadius, 0, Math.PI * 2);
@@ -15,5 +15,8 @@ export function createPipeShape(
 
 	ringShape.holes.push(ringHoleShape);
 
-	return ringShape;
+	const outerPoints = ringShape.getPoints().length;
+	const holePoints = ringHoleShape.getPoints().length;
+
+	return { ringShape, outerPoints, holePoints };
 }
