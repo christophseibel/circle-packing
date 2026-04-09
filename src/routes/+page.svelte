@@ -11,13 +11,14 @@
 	import { render } from 'svelte/server';
 
 	let canvas: HTMLCanvasElement;
+	let generateArrangement: () => void = $state(() => {});
 
-	onMount(async () => {
+	onMount(() => {
 		const scene = new THREE.Scene();
-		const graph = new Graph(scene);
+		const graph = new Graph();
 
-		const camera = new THREE.PerspectiveCamera(20, 500 / 500, 0.1, 1000);
-		camera.position.set(0, 330, 300);
+		const camera = new THREE.PerspectiveCamera(10, 1, 0.5, 1000);
+		camera.position.set(0, 600, 600);
 		camera.lookAt(0, 200, 0);
 
 		const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
@@ -46,56 +47,6 @@
 		scene.add(light1.target);
 		// scene.add(cameraHelper1);
 
-		let i = 0;
-		let amount = Math.floor(randomNumber(30, 60));
-		let r = (Math.PI * 2) / amount;
-		while (i < amount) {
-			graph.addNode(
-				new THREE.Vector2(
-					Math.cos(r * i) * randomNumber(40, 45),
-					Math.sin(r * i) * randomNumber(40, 45)
-				),
-				2
-			);
-			i++;
-		}
-
-		i = 0;
-		amount = Math.floor(randomNumber(15, 30));
-		r = (Math.PI * 2) / amount;
-		while (i < amount) {
-			graph.addNode(
-				new THREE.Vector2(
-					Math.cos(r * i) * randomNumber(20, 30),
-					Math.sin(r * i) * randomNumber(20, 30)
-				),
-				2
-			);
-			i++;
-		}
-
-		i = 0;
-		amount = Math.floor(randomNumber(3, 6));
-		r = (Math.PI * 2) / amount;
-		while (i < amount) {
-			graph.addNode(
-				new THREE.Vector2(
-					Math.cos(r * i) * randomNumber(10, 15),
-					Math.sin(r * i) * randomNumber(10, 15)
-				),
-				2
-			);
-			i++;
-		}
-
-		graph.addNode(new THREE.Vector2(0, 0), 2);
-
-		graph.triangulate();
-
-		for (let i = 0; i < 1000; i++) {
-			graph.optimize();
-		}
-
 		const texture = new THREE.CanvasTexture(new FlakesTexture());
 		texture.wrapS = THREE.RepeatWrapping;
 		texture.wrapT = THREE.RepeatWrapping;
@@ -104,13 +55,6 @@
 
 		const topMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 		const insideMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
-
-		const loader = new THREE.TextureLoader();
-		const matcapTexture = await loader.loadAsync('src/lib/images/matcap.png');
-		const matcapMaterial = new THREE.MeshMatcapMaterial({
-			color: new THREE.Color().setRGB(1, 0, 0),
-			matcap: matcapTexture
-		});
 
 		const palette = [
 			new THREE.Color().setRGB(0.1, 0.1, 0.5),
@@ -121,52 +65,116 @@
 			new THREE.Color().setRGB(0.5, 0.5, 1)
 		];
 
-		graph.nodes.forEach((circle) => {
-			const shape = createPipeShape(circle.radius - randomNumber(0.4, 1), circle.radius, 10);
-
-			const geometry = new THREE.ExtrudeGeometry(shape.ringShape, {
-				depth: randomNumber(198, 200),
-				curveSegments: 128,
-				bevelEnabled: false
+		generateArrangement = () => {
+			graph.clear();
+			scene.getObjectsByProperty('name', 'pipe').forEach((object) => {
+				scene.remove(object);
 			});
+			let i = 0;
+			let amount = Math.floor(randomNumber(30, 60));
+			let r = (Math.PI * 2) / amount;
+			while (i < amount) {
+				graph.addNode(
+					new THREE.Vector2(
+						Math.cos(r * i) * randomNumber(40, 45),
+						Math.sin(r * i) * randomNumber(40, 45)
+					),
+					2
+				);
+				i++;
+			}
 
-			const outerSideCount = 128 * 2 * 6;
+			i = 0;
+			amount = Math.floor(randomNumber(15, 30));
+			r = (Math.PI * 2) / amount;
+			while (i < amount) {
+				graph.addNode(
+					new THREE.Vector2(
+						Math.cos(r * i) * randomNumber(20, 30),
+						Math.sin(r * i) * randomNumber(20, 30)
+					),
+					2
+				);
+				i++;
+			}
 
-			const sideGroup = geometry.groups[1];
-			const sidesStart = sideGroup.start;
-			const totalSideCount = sideGroup.count;
+			i = 0;
+			amount = Math.floor(randomNumber(3, 6));
+			r = (Math.PI * 2) / amount;
+			while (i < amount) {
+				graph.addNode(
+					new THREE.Vector2(
+						Math.cos(r * i) * randomNumber(10, 15),
+						Math.sin(r * i) * randomNumber(10, 15)
+					),
+					2
+				);
+				i++;
+			}
 
-			geometry.groups = [
-				geometry.groups[0],
-				{ start: sidesStart, count: outerSideCount, materialIndex: 1 },
-				{
-					start: sidesStart + outerSideCount,
-					count: totalSideCount - outerSideCount,
-					materialIndex: 2
-				}
-			];
+			graph.addNode(new THREE.Vector2(0, 0), 2);
 
-			const pipeMaterial = new THREE.MeshPhysicalMaterial({
-				clearcoat: 1,
-				clearcoatRoughness: 0.1,
-				metalness: 1,
-				roughness: 0.4,
-				color: palette[Math.floor(randomNumber(0, palette.length + 0))],
-				normalMap: texture,
-				normalScale: new THREE.Vector2(0.1, 0.1),
-				clearcoatNormalMap: texture,
-				clearcoatNormalScale: new THREE.Vector2(0.05, 0.05)
+			graph.triangulate();
+
+			for (let i = 0; i < 1000; i++) {
+				graph.optimize();
+			}
+
+			graph.nodes.forEach((circle) => {
+				const shape = createPipeShape(circle.radius - randomNumber(0.4, 1), circle.radius, 10);
+
+				const geometry = new THREE.ExtrudeGeometry(shape.ringShape, {
+					depth: randomNumber(198, 200),
+					curveSegments: 128,
+					bevelEnabled: false
+				});
+
+				const outerSideCount = 128 * 2 * 6;
+
+				const sideGroup = geometry.groups[1];
+				const sidesStart = sideGroup.start;
+				const totalSideCount = sideGroup.count;
+
+				geometry.groups = [
+					geometry.groups[0],
+					{ start: sidesStart, count: outerSideCount, materialIndex: 1 },
+					{
+						start: sidesStart + outerSideCount,
+						count: totalSideCount - outerSideCount,
+						materialIndex: 2
+					}
+				];
+
+				const pipeMaterial = new THREE.MeshPhysicalMaterial({
+					clearcoat: 1,
+					clearcoatRoughness: 0.1,
+					metalness: 1,
+					roughness: 0.4,
+					color: palette[Math.floor(randomNumber(0, palette.length + 0))],
+					normalMap: texture,
+					normalScale: new THREE.Vector2(0.1, 0.1),
+					clearcoatNormalMap: texture,
+					clearcoatNormalScale: new THREE.Vector2(0.05, 0.05)
+				});
+
+				const mesh = new THREE.Mesh(geometry, [topMaterial, pipeMaterial, insideMaterial]);
+				mesh.receiveShadow = true;
+				mesh.castShadow = true;
+				mesh.position.x = circle.position.x;
+				mesh.position.z = circle.position.y;
+				mesh.rotation.x = -Math.PI / 2;
+				mesh.name = 'pipe';
+				scene.add(mesh);
 			});
+		};
 
-			const mesh = new THREE.Mesh(geometry, [topMaterial, pipeMaterial, insideMaterial]);
-			mesh.receiveShadow = true;
-			mesh.castShadow = true;
-			mesh.position.x = circle.position.x;
-			mesh.position.z = circle.position.y;
-			mesh.rotation.x = -Math.PI / 2;
-			mesh.name = 'pipe';
-			scene.add(mesh);
-		});
+		generateArrangement();
+
+		// renderer.render(scene, camera);
+
+		// document.addEventListener('click', () => {
+		// 	generateArrangement();
+		// });
 
 		renderer.setAnimationLoop((time: number) => {
 			renderer.render(scene, camera);
@@ -178,14 +186,78 @@
 	}
 </script>
 
-<canvas bind:this={canvas} width={700} height={700}></canvas>
+<div id="app">
+	<canvas bind:this={canvas} width={700} height={700}></canvas>
+
+	<button onclick={generateArrangement} aria-label="regenerate"
+		><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"
+			><rect width="256" height="256" fill="none" /><polyline
+				points="184 104 232 104 232 56"
+				fill="none"
+				stroke="currentColor"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="16"
+			/><path
+				d="M188.4,192a88,88,0,1,1,1.83-126.23L232,104"
+				fill="none"
+				stroke="currentColor"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				stroke-width="16"
+			/></svg
+		></button
+	>
+</div>
 
 <!-- <P5 {sketch} /> -->
 <!-- 
 <input type="checkbox" bind:checked={debug} /> -->
 
 <style>
+	:global(body) {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		height: 100vh;
+		overflow: hidden;
+		height: 100vh;
+		padding: unset;
+		margin: unset;
+	}
+
+	#app {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 10px;
+		padding: 10px;
+		border: black solid 1px;
+	}
+
 	canvas {
 		background: linear-gradient(#5c93e4, #d4d7ec);
+	}
+
+	button {
+		width: 50px;
+		aspect-ratio: 1 / 1;
+		position: relative;
+		padding: 5px;
+		align-self: flex-start;
+		border-radius: unset;
+		background-color: unset;
+		border: black solid 1px;
+		transition: transform 0.1s;
+	}
+
+	button:hover {
+		background-color: #f7d257;
+		cursor: pointer;
+	}
+
+	button:active {
+		background-color: #b87305;
+		transform: scale(0.95);
 	}
 </style>

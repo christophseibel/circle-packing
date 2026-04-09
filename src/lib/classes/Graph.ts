@@ -7,14 +7,6 @@ export class Graph {
 	nodes: Circle[] = [];
 	edges: Set<number>[] = [];
 
-	scene: THREE.Scene;
-
-	palette = ['#0cdfae', '#17bb3a', '#fcd217', '#f32f59', '#e612fa'];
-
-	constructor(scene: THREE.Scene) {
-		this.scene = scene;
-	}
-
 	addNode(position: THREE.Vector2, r: number): Circle {
 		const circle = new Circle(position, r);
 		this.nodes.push(circle);
@@ -26,6 +18,11 @@ export class Graph {
 	connect(a: number, b: number) {
 		this.edges[a].add(b);
 		this.edges[b].add(a);
+	}
+
+	clear() {
+		this.nodes.length = 0;
+		this.edges.length = 0;
 	}
 
 	triangulate() {
@@ -70,8 +67,6 @@ export class Graph {
 			i++;
 		}
 	}
-
-	display() {}
 }
 
 const next = (i: number) => i - (i % 3) + ((i + 1) % 3);
